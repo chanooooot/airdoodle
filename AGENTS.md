@@ -4,7 +4,7 @@ Instructions for any coding agent (Codex, etc.) working in this repo.
 
 ## Project
 
-AirToon: mobile webapp. Front camera + MediaPipe Hands. User pinches to draw strokes in the air; open-palm (or button) brings the drawing alive as a physics creature (matter.js) with procedural animation (breathe, wiggle, blinking eyes, hops) that reacts to the user's hand.
+AirToon: mobile webapp. Front camera + MediaPipe Hands. User pinches to draw strokes in the air; a closed fist (or button) brings the drawing alive as a physics creature (matter.js) with procedural animation (breathe, wiggle, blinking eyes, hops) that reacts to the user's hand.
 
 Source of truth:
 - `SPEC.md` — product spec + settled decision log (§2). Do not change decisions without asking Ham.
@@ -16,7 +16,7 @@ Source of truth:
 2. **Repo files:** `index.html`, `app.js`, `README.md` only. Do not add other files without explicit approval.
 3. **Zero cost:** no servers, no API keys, no external services. Deploy target: GitHub Pages (HTTPS required for camera).
 4. **Follow phase order** in BUILD_PLAN.md. A phase is done only when its Verify check passes on Ham's real phone. Respect kill gates (P1: ≥15fps; P3: delight test).
-5. **Perf budgets are binding** (BUILD_PLAN.md table): ≥15fps with 5 creatures, physics 30Hz, ≤2,000 stroke points, <50KB own JS.
+5. **Perf budgets are binding** (BUILD_PLAN.md table): ≥15fps with 3 creatures, physics 30Hz, ≤2,000 stroke points, <50KB own JS.
 6. **Simplicity:** minimum code per phase. No speculative features, abstractions, or configs. Every changed line must trace to the current phase or explicit feedback.
 7. **Non-goals** (do not build): anything in SPEC.md §8 backlog, tests frameworks, analytics, persistence, accounts, sound.
 
@@ -33,8 +33,8 @@ Source of truth:
 | Gesture | Detection | Action |
 |---|---|---|
 | Pinch | thumb-tip↔index-tip dist, normalized by wrist↔index-MCP, threshold + hysteresis + 3-frame vote | pen down/up |
-| Open palm 1s | 4 fingers extended, held 1s, ≥1 stroke exists | bring alive |
-| Button ✨ | on-screen | same as open palm |
+| Fist 0.6s | 4 fingers curled, held 0.6s, ≥1 stroke exists | bring alive |
+| Button ✨ | on-screen | same as fist |
 
 ## Creature behavior (implement exactly, SPEC §3)
 

@@ -231,6 +231,8 @@ function addPoint(lm) {
 function hideHandBodies() {
   Matter.Body.setPosition(fingerBody, { x: -1000, y: -1000 });
   Matter.Body.setPosition(palmBody, { x: -1000, y: -1000 });
+  Matter.Body.setVelocity(fingerBody, { x: 0, y: 0 });
+  Matter.Body.setVelocity(palmBody, { x: 0, y: 0 });
 }
 
 function clearGestureState() {
@@ -315,7 +317,7 @@ function stepPhysics() {
 }
 
 const creatures = [];
-const MAX_CREATURES = 5;
+const MAX_CREATURES = 3;
 const SPECIALS = ['rainbow', 'sparkle', 'glow', 'giant', 'shimmer', 'confetti', 'starryEyes', 'trailGhost', 'jellyWobble', 'orbitRing'];
 const SPECIAL_CHANCE = 0.1;
 const specialToastEl = document.getElementById('specialToast');
@@ -505,7 +507,7 @@ function drawCreatures() {
 
     const startled = now < c.startleUntil;
     const wobbleMult = c.special === 'jellyWobble' ? 2.5 : 1;
-    const breathe = 1 + 0.03 * wobbleMult * Math.sin(now / 1000 * Math.PI);
+    const breathe = 1.03 + 0.03 * wobbleMult * Math.sin(now / 1000 * Math.PI);
     const wiggle = Math.sin(now / 900 + c.wigglePhase) * 3 * wobbleMult * Math.PI / 180;
     const scaleY = startled ? 0.85 : breathe;
     const scaleX = startled ? 1.15 : 1;
@@ -780,6 +782,7 @@ function startHandTracking() {
       return;
     }
 
+    const wasTracked = handTracked;
     handTracked = true;
     handMissingSince = null;
     updatePinch(lm);
@@ -793,8 +796,8 @@ function startHandTracking() {
 
     const tipX = lm[8].x * canvas.width, tipY = lm[8].y * canvas.height;
     const palmX = (lm[0].x + lm[9].x) / 2 * canvas.width, palmY = (lm[0].y + lm[9].y) / 2 * canvas.height;
-    Matter.Body.setPosition(fingerBody, { x: tipX, y: tipY });
-    Matter.Body.setPosition(palmBody, { x: palmX, y: palmY });
+    Matter.Body.setPosition(fingerBody, { x: tipX, y: tipY }, wasTracked);
+    Matter.Body.setPosition(palmBody, { x: palmX, y: palmY }, wasTracked);
   }
 
   function render() {
@@ -806,6 +809,13 @@ function startHandTracking() {
     processFreshResult();
 
     const now = performance.now();
+    if (lastResultTime && now - lastResultTime >= TRACKING_GRACE_MS) {
+      if (handTracked) {
+        handTracked = false;
+        hideHandBodies();
+      }
+      clearGestureState();
+    }
     if (handMissingSince !== null && now - handMissingSince >= TRACKING_GRACE_MS) {
       clearGestureState();
     }
@@ -873,12 +883,17 @@ function drawWatermark(c, w, h) {
 // camera) — the back camera renders unflipped, so flipping here would save a
 // video that's a mirror of what the user just watched.
 function drawScene(c, w, h) {
+  c.clearRect(0, 0, w, h);
+  c.fillStyle = '#000';
+  c.fillRect(0, 0, w, h);
   c.save();
   if (document.body.classList.contains('mirrored')) {
     c.translate(w, 0);
     c.scale(-1, 1);
   }
-  c.drawImage(video, 0, 0, w, h);
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    c.drawImage(video, 0, 0, w, h);
+  }
   c.drawImage(canvas, 0, 0, w, h);
   c.restore();
 }
@@ -974,6 +989,8 @@ function startRecording() {
     recordBtn.innerHTML = REC_ICON;
     recordBtn.classList.remove('recording');
     recTimerEl.classList.remove('show');
+    camBtn.disabled = false;
+    flipBtn.disabled = !cameraOn;
     // strip codec params (e.g. ";codecs=avc1.42E01E") — iOS Photos' Save Video
     // import matches on a clean MIME type, not a parameterized one
     const outType = (mediaRecorder.mimeType || mimeType || 'video/mp4').split(';')[0];
@@ -982,6 +999,8 @@ function startRecording() {
   };
   mediaRecorder.start();
   recording = true;
+  camBtn.disabled = true;
+  flipBtn.disabled = true;
   recordStartTime = performance.now();
   recordBtn.innerHTML = STOP_ICON;
   recordBtn.classList.add('recording');

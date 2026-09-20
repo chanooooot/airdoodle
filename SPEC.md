@@ -9,12 +9,12 @@
 
 - User props phone up, front camera on, sees mirrored self on screen.
 - Pinch (index + thumb) = pen down. Move hand = draw a glowing stroke in the air. Release pinch = pen up (multi-stroke drawings supported).
-- Hold open palm ~1 second (or tap fallback button) = drawing "comes alive":
+- Hold a closed fist ~0.6 seconds (or tap fallback button) = drawing "comes alive":
   - Strokes merge into one sprite/creature.
   - Procedural life: breathing squash-and-stretch, wiggle, auto-stamped blinking eyes, occasional hops.
   - Physics: gravity, bounces off screen edges and floor (matter.js).
   - Hand reactivity: user's hand is a physics body — creatures can be batted, pushed, juggled.
-- Max 5 creatures alive; creating a 6th fades out the oldest.
+- Max 3 creatures alive; creating a 4th fades out the oldest.
 - Record button: 15-second video clip → native share sheet.
 
 ## 2. Decision Log
@@ -55,7 +55,7 @@ Reactivity:
 |---------|-----------|--------|
 | Pinch | thumb tip–index tip distance < threshold (normalized by hand size) | Pen down; draw at index tip |
 | Pinch release | distance > threshold + hysteresis | Pen up (stroke ends) |
-| Fist 1s | all 4 fingers curled (MediaPipe landmarks), held 1s, only when ≥1 stroke exists | Bring drawing alive |
+| Fist 0.6s | all 4 fingers curled (MediaPipe landmarks), held 0.6s, only when ≥1 stroke exists | Bring drawing alive |
 | (fallback) | On-screen "✨ Alive" button | Same as fist |
 
 Hysteresis and 3-frame smoothing on all gesture detections to avoid flicker.
@@ -64,7 +64,7 @@ Hysteresis and 3-frame smoothing on all gesture detections to avoid flicker.
 
 - Full-screen mirrored camera feed, strokes + creatures overlaid on canvas
 - Bottom bar: [✨ Alive] [⏺ Record 15s] [🗑 Clear]
-- First-run overlay: "Prop your phone up. Pinch to draw. Open your palm to bring it to life." (3 icons, dismiss on first pinch)
+- First-run overlay: "Prop your phone up. Pinch to draw. Hold a fist to bring it to life." (3 icons, dismiss on first pinch)
 - No accounts, no settings, no persistence
 
 ## 6. Risks & Mitigations
@@ -72,7 +72,7 @@ Hysteresis and 3-frame smoothing on all gesture detections to avoid flicker.
 | Risk | Level | Mitigation |
 |------|-------|-----------|
 | iOS Safari MediaRecorder quirks | Med | Test early (P4 gate). Fallback: iOS gets screenshot-only, documented known-issue. |
-| Mobile perf (tracking + physics) | Med | MediaPipe lite model, 1 hand, cap 5 creatures, physics at 30Hz, render via requestAnimationFrame with frame skip. |
+| Mobile perf (tracking + physics) | Med | MediaPipe lite model, 1 hand, cap 3 creatures, physics at 30Hz, render via requestAnimationFrame with frame skip. |
 | Pinch misfires / jitter | Low | Hysteresis + smoothing (§4); fallback button. |
 | Camera permission denied | Low | Friendly retry screen. |
 

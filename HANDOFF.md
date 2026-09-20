@@ -4,7 +4,7 @@
 **Live URL:** https://chanooooot.github.io/airdoodle/ (repo: chanooooot/airdoodle, public — renamed from `sage` today; old `/sage/` links redirect via GitHub for a while, not forever)
 **App name:** AirDoodle (renamed from AirToon — title, share sheet, filenames, all docs updated)
 
-## Status: P0–P5 all shipped, plus a full review/polish pass
+## Status: P0–P5 implemented; real-device P3/P5 verification remains pending
 
 All phases from BUILD_PLAN.md are built and deployed. Did a full code/UX/design review
 pass (plan: see git log around commits `033117b`..`8d234d4`; review plan file if still
@@ -78,7 +78,7 @@ Current cache version is app.js?v=45.
 - **P0** Camera skeleton, mirrored full-screen, permission-denied retry screen
 - **P1** MediaPipe hand tracking (1 hand, lite model), fingertip/palm tracking, FPS counter (`?debug=1`)
 - **P2** Pinch-to-draw (hysteresis + 3-vote smoothing), multi-stroke, Undo (removes last stroke), Clear, stroke points capped at 2000 (drop-oldest, perf budget)
-- **P3** matter.js physics — creatures spawn at drawn position (not falling), circle body, breathe/wiggle/blink/hop, hand-body collisions with startle reaction, cap 5 creatures w/ 1.5s fade-out oldest
+- **P3** matter.js physics — creatures spawn at drawn position (not falling), circle body, breathe/wiggle/blink/hop, hand-body collisions with startle reaction, cap 3 creatures w/ 1.5s fade-out oldest
 - **P4** 15s recording (camera+canvas composite via MediaRecorder), Web Share API w/ download fallback, screenshot fallback if MediaRecorder unsupported. **Note:** a live countdown on the Record button was added then reverted per user request — button is plain `⏺ Record` / `⏹ Stop` again.
 - **P5** First-run instruction overlay (shown before camera opens, camera starts on tap), flex bottom bar w/ safe-area insets, friendlier camera-denied copy
 - **Extra (post-launch):** front/back camera flip toggle (🔄), camera on/off toggle (📷, privacy — fully stops tracks), birth effect (expanding color ring — was silently broken, now fixed + elastic wobble pop-in), fist-hold charge-up progress ring (makes the alive gesture legible), eyes/mouth tumble with body rotation instead of floating in screen space, experimental procedural smile, idle nudge hint after 4s of no drawing, active-draw-color swatch on Alive button, aria-labels on icon buttons, UI beautification pass (Fredoka/Nunito fonts, claymorphism-lite buttons, haptic feedback on Alive/Record, pulsing record button)
@@ -106,7 +106,7 @@ backlogged — only the actual blocker was fixed.
 - Hand tracking still drops when a hand exits camera FOV. A 120ms grace now avoids
   splitting brief edge losses; longer losses deliberately end the stroke.
 - iOS Safari MediaRecorder — timeboxed test was done, confirmed working via user testing (if this regresses, screenshot fallback already in place, see `app.js` `startRecording()`).
-- **SPEC.md D7 says the creature cap is 3. It is 5.** Code, CLAUDE.md, BUILD_PLAN.md and AGENTS.md agree on 5; only SPEC's decision log is stale. Don't "fix" the code to match SPEC.
+- **Creature cap is 3**, matching SPEC D7 and the current implementation. Verify the three-creature performance gate on Ham's phone.
 - The iOS no-MediaRecorder screenshot path shares `drawScene()` with the video composite as of 2026-08-12, but has not been exercised on a device without MediaRecorder.
 - Procedural smile (Tier 3.2 of the review) is explicitly experimental — it's live but not battle-tested on a wide variety of drawings. May look odd on abstract scribbles; watch for this and remove `app.js`'s "experimental: procedural smile" block if it doesn't read well.
 
@@ -194,14 +194,14 @@ been verified on Ham's phone yet.
 
 - **Run the motion reliability phone gate before further tuning:** baseline/fixed
   tracking FPS (>=15), 20 pinch cycles, four-stroke smiley, edge-loss grace,
-  long-loss disconnect, camera off/on, five creatures, and recording. Use
+  long-loss disconnect, three creatures, and recording. Use
   ?debug=1; points must not increase faster than MediaPipe results.
-- **Nothing above has been tested on Ham's real phone yet.** Priority: verify FPS with 5 creatures (including while recording), Cam off/on, Flip, permission retry, backgrounding/return, and the new dialog/inert behavior doesn't trap focus somewhere unexpected.
+- **P3/P5 real-device gates remain open.** Priority: verify FPS with 3 creatures (including while recording), Cam off/on, Flip, permission retry, backgrounding/return, and the new dialog/inert behavior doesn't trap focus somewhere unexpected.
 - **New from 2026-07-27 session, also unverified on phone:** the claymorphism visual pass (buttons/
   icons/camera-off screen/recording feedback), the 16-color palette, and the bonus special-creature
   system (particularly `trailGhost`/`jellyWobble` motion feel, and whether the ~10% special-spawn rate
   feels right or needs tuning).
-- **Creature cap bumped 3 → 5** (Ham's call, explicit perf-risk tradeoff — see updated CLAUDE.md/SPEC.md/BUILD_PLAN.md/AGENTS.md). Unverified whether 5 holds ≥15fps on Ham's phone, especially mid-recording. If it doesn't, drop back toward 3-4.
+- **Creature cap is 3** per the current SPEC decision. The ≥15fps gate is still unverified on Ham's phone, especially mid-recording.
 - LINE and Instagram share testing (text/URL/watermark survival, cancellation quietness, unsupported-share download) — not yet done on Ham's phone.
 - No friend/blind test done yet (P5's real verify: "a friend uses it with zero verbal instructions, creates a living creature within 2 minutes"). Do this before considering v1 fully done.
 - Judge the removed procedural smile's absence — if eyes alone read as too plain on a real phone, that's a design call for Ham, not a silent re-add.
