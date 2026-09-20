@@ -1,11 +1,11 @@
 # STATUS
 
-**Goal:** (one line: what done looks like)
+**Goal:** Ship a reliable mobile AirDoodle v1.
 
-**Now:** (current state, one line)
+**Now:** P0–P5 shipped; latest camera and recording recovery fixes need phone verification.
 
-**Next:** (the single next step)
+**Next:** Test 5 creatures while recording with `?debug=1` on Ham's phone.
 
-**Blocked:** (nothing / what)
+**Blocked:** Needs Ham's phone for the required performance gate.
 
-_Updated: 2026-09-19_
+_Updated: 2026-09-21_

@@ -60,6 +60,7 @@ const bottomBar = document.getElementById('bottomBar');
 const camBtn = document.getElementById('camBtn');
 const flipBtn = document.getElementById('flipBtn');
 let cameraStartTime = null;
+let cameraRequest = 0;
 
 // title/tutorial/retry are modal dialogs: block the background controls while shown
 function updateBackgroundInert() {
@@ -118,6 +119,7 @@ let cameraOn = true;
 camBtn.addEventListener('click', () => {
   if (cameraOn) {
     cameraOn = false;
+    cameraRequest++;
     resetTrackingState();
     if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
     video.srcObject = null;
@@ -702,11 +704,16 @@ let currentFacing = 'user';
 let trackingStarted = false;
 
 async function startCamera() {
+  const request = ++cameraRequest;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: currentFacing },
       audio: false
     });
+    if (!cameraOn || request !== cameraRequest) {
+      stream.getTracks().forEach(t => t.stop());
+      return;
+    }
     video.srcObject = stream;
     retry.style.display = 'none';
     updateBackgroundInert();
@@ -719,6 +726,7 @@ async function startCamera() {
       }
     };
   } catch (err) {
+    if (!cameraOn || request !== cameraRequest) return;
     retry.style.display = 'flex';
     updateBackgroundInert();
     document.getElementById('retryBtn').focus();
@@ -726,12 +734,17 @@ async function startCamera() {
 }
 
 async function flipCamera() {
+  const request = ++cameraRequest;
   const nextFacing = currentFacing === 'user' ? 'environment' : 'user';
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: nextFacing },
       audio: false
     });
+    if (!cameraOn || request !== cameraRequest) {
+      stream.getTracks().forEach(t => t.stop());
+      return;
+    }
     if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
     video.srcObject = stream;
     currentFacing = nextFacing;
@@ -861,7 +874,7 @@ function startHandTracking() {
 // --- P4: record & share ---
 const recordBtn = document.getElementById('recordBtn');
 let recording = false;
-let recCanvas, rctx, mediaRecorder, stopTimer;
+let recCanvas, rctx, mediaRecorder, recordStream, stopTimer;
 
 const WATERMARK_TEXT = 'Made with AirDoodle · chanooooot.github.io/airdoodle';
 
@@ -949,8 +962,11 @@ async function shareOrDownload(blob, filename) {
       flashRecordBtn('✅ Saved!');
     } catch (e) {
       // user backing out of the share sheet is not a failure — stay quiet.
-      // any other error: surface the real name instead of guessing at "not supported"
-      if (e.name !== 'AbortError') flashRecordBtn(`⚠ ${e.name || 'error'}`);
+      // any other error: keep the clip by downloading it
+      if (e.name !== 'AbortError') {
+        downloadBlob(blob, filename);
+        flashRecordBtn('Downloaded');
+      }
     }
     return;
   }
@@ -970,9 +986,13 @@ function startRecording() {
     const shot = document.createElement('canvas');
     shot.width = canvas.width; shot.height = canvas.height;
     drawScene(shot.getContext('2d'), shot.width, shot.height);
-    shot.toBlob((blob) => shareOrDownload(blob, 'airdoodle.png'), 'image/png');
+    shot.toBlob((blob) => {
+      if (blob) shareOrDownload(blob, 'airdoodle.png');
+      else flashRecordBtn('Screenshot unavailable');
+    }, 'image/png');
     return;
   }
+  try {
   recCanvas = document.createElement('canvas');
   recCanvas.width = canvas.width; recCanvas.height = canvas.height;
   rctx = recCanvas.getContext('2d');
@@ -980,8 +1000,8 @@ function startRecording() {
   // iOS Photos only saves H.264 .mp4 — prefer an explicit codec so the file is decodable
   const mimeType = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp8', 'video/webm']
     .find((t) => MediaRecorder.isTypeSupported(t)) || '';
-  const stream = recCanvas.captureStream(30);
-  mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+  recordStream = recCanvas.captureStream(30);
+  mediaRecorder = new MediaRecorder(recordStream, mimeType ? { mimeType } : undefined);
   const chunks = [];
   mediaRecorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   mediaRecorder.onstop = () => {
@@ -995,6 +1015,8 @@ function startRecording() {
     // import matches on a clean MIME type, not a parameterized one
     const outType = (mediaRecorder.mimeType || mimeType || 'video/mp4').split(';')[0];
     const blob = new Blob(chunks, { type: outType });
+    recordStream.getTracks().forEach(t => t.stop());
+    recordStream = null;
     shareOrDownload(blob, outType.includes('mp4') ? 'airdoodle.mp4' : 'airdoodle.webm');
   };
   mediaRecorder.start();
@@ -1007,6 +1029,12 @@ function startRecording() {
   recTimerEl.classList.add('show');
   updateRecTimer();
   stopTimer = setTimeout(() => stopRecording(), 15000);
+  } catch (err) {
+    if (recordStream) recordStream.getTracks().forEach(t => t.stop());
+    recordStream = null;
+    mediaRecorder = null;
+    flashRecordBtn('Recording unavailable');
+  }
 }
 
 function stopRecording() {
