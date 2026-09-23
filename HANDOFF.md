@@ -108,7 +108,6 @@ backlogged — only the actual blocker was fixed.
 - iOS Safari MediaRecorder — timeboxed test was done, confirmed working via user testing (if this regresses, screenshot fallback already in place, see `app.js` `startRecording()`).
 - **Creature cap is 3**, matching SPEC D7 and the current implementation. Verify the three-creature performance gate on Ham's phone.
 - The iOS no-MediaRecorder screenshot path shares `drawScene()` with the video composite as of 2026-08-12, but has not been exercised on a device without MediaRecorder.
-- Procedural smile (Tier 3.2 of the review) is explicitly experimental — it's live but not battle-tested on a wide variety of drawings. May look odd on abstract scribbles; watch for this and remove `app.js`'s "experimental: procedural smile" block if it doesn't read well.
 
 ## Cache-busting note
 

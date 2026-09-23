@@ -145,9 +145,9 @@ const debug = new URLSearchParams(location.search).has('debug');
 fpsEl.style.display = debug ? 'block' : 'none';
 
 function resizeCanvas() {
-  const w = video.videoWidth || window.innerWidth;
-  const h = video.videoHeight || window.innerHeight;
-  if (canvas.width === w && canvas.height === h) return;
+  const w = video.videoWidth, h = video.videoHeight;
+  // camera off (no video dims): keep the last size so creatures stay inside the walls
+  if (!w || (canvas.width === w && canvas.height === h)) return;
   canvas.width = w;
   canvas.height = h;
   setupWalls();
@@ -162,6 +162,7 @@ let dropoutCount = 0;
 let handTracked = false;
 let handMissingSince = null;
 const TRACKING_GRACE_MS = 120;
+const RESULT_STALE_MS = 300; // slow inference with hand present — don't split strokes on one late result
 
 function onResults(results) {
   if (!cameraOn) return;
@@ -757,7 +758,7 @@ document.getElementById('flipBtn').addEventListener('click', flipCamera);
 
 function startHandTracking() {
   const hands = new Hands({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
   });
   hands.setOptions({
     maxNumHands: 1,
@@ -822,7 +823,7 @@ function startHandTracking() {
     processFreshResult();
 
     const now = performance.now();
-    if (lastResultTime && now - lastResultTime >= TRACKING_GRACE_MS) {
+    if (lastResultTime && now - lastResultTime >= RESULT_STALE_MS) {
       if (handTracked) {
         handTracked = false;
         hideHandBodies();
@@ -920,10 +921,9 @@ const REC_ICON = '<span class="icon"><svg width="16" height="16" viewBox="0 0 20
 const STOP_ICON = '<span class="icon"><svg width="16" height="16" viewBox="0 0 20 20" fill="#fff"><rect x="6" y="6" width="8" height="8" rx="2"/></svg></span>Stop';
 
 function flashRecordBtn(text) {
-  const prevHTML = recordBtn.innerHTML;
   recordBtn.textContent = text;
   // a new recording started inside the 2s window owns the button — don't stomp it
-  setTimeout(() => { if (!recording) recordBtn.innerHTML = prevHTML; }, 2000);
+  setTimeout(() => { if (!recording) recordBtn.innerHTML = REC_ICON; }, 2000);
 }
 
 const recTimerEl = document.getElementById('recTimer');
